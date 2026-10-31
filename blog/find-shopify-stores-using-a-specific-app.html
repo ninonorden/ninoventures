@@ -1,0 +1,155 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to find Shopify stores using a specific app (and turn it into a lead list)</title><meta name="description" content="A practical lead-gen workflow: build a list of Shopify stores, detect which apps each one runs (Klaviyo, Judge.me, Yotpo, ReCharge…), filter by app, and monitor installs and uninstalls."><link rel="canonical" href="https://ninonorden.github.io/ninoventures/blog/find-shopify-stores-using-a-specific-app.html">
+<meta property="og:title" content="How to find Shopify stores using a specific app (and turn it into a lead list)"><meta property="og:description" content="A practical lead-gen workflow: build a list of Shopify stores, detect which apps each one runs (Klaviyo, Judge.me, Yotpo, ReCharge…), filter by app, and monitor installs and uninstalls."><meta property="og:type" content="article">
+<link rel="stylesheet" href="../style.css"></head><body>
+<header><div class="wrap"><a class="logo" href="../index.html">Nino <span>Ventures</span></a><nav><a href="../mcp-server-starter-kit.html">MCP Starter Kit</a><a href="../blog/index.html">Blog</a><a href="../index.html#contact">Contact</a></nav></div></header>
+<main class="wrap doc article"><p class="meta">Nino Ventures &middot; 2026-10-31</p><h1>How to find Shopify stores using a specific app (and turn it into a lead list)</h1>
+<p>If you sell to Shopify merchants, as an app developer, an agency or a freelancer, the best lead is a store that <strong>already uses a tool like yours</strong>, or just <strong>stopped using it</strong>. A store running a competitor's reviews app has a reviews budget. A store that uninstalled it last week is actively looking.</p>
+<p>This guide shows a repeatable workflow:</p>
+<ol>
+<li>Build a list of candidate store domains</li>
+<li>Detect the apps, theme and stack of every store in bulk</li>
+<li>Filter for the app you care about</li>
+<li>Turn on monitoring to catch installs and uninstalls</li>
+<li>Use the data responsibly</li>
+</ol>
+<p>We'll use the <strong><a href="https://apify.com/ninoventures/shopify-app-tech-detector">Shopify App &amp; Theme Detector</a></strong> on Apify. It costs $0.005 per analyzed store ($5 per 1,000), and non-Shopify, unreachable and duplicate domains are free.</p>
+<h2>How app detection works (and its limits)</h2>
+<p>Shopify apps leave fingerprints in a store's public storefront: script tags from the app's CDN (for example <code>klaviyo.com</code>, <code>judge.me</code>, <code>rechargecdn.com</code>), theme app extension "app embeds", and web pixels. The detector loads each store's public homepage and matches it against 130+ app signatures. It also auto-detects app embeds, even for apps that aren't in the signature list.</p>
+<p>Limits to keep in mind:</p>
+<ul>
+<li><strong>Back-office apps are invisible.</strong> Apps that never touch the storefront (accounting, inventory, some fulfillment tools) can't be detected from outside. No tool can see them without store access.</li>
+<li>Some apps only load on product or cart pages. Homepage detection catches the vast majority of marketing, reviews, subscription, upsell and support apps, but not 100%.</li>
+<li>Password-protected and blocked stores are reported as such, and you aren't charged for them.</li>
+</ul>
+<h2>Step 1: Build a list of candidate stores</h2>
+<p>The detector analyzes the domains you give it, so start with a list. Good sources:</p>
+<ul>
+<li><strong>Your niche.</strong> Brands in "sustainable fashion", "coffee" or "pet supplies" from marketplace lists, award lists, Instagram shops and "best X brands" articles. Many DTC brands run on Shopify.</li>
+<li><strong>Search engines.</strong> Queries like <code>"powered by shopify" coffee</code> or <code>site:myshopify.com &lt;niche&gt;</code> surface stores in a niche.</li>
+<li><strong>Your existing CRM or a purchased company list.</strong> Enrich domains you already have.</li>
+<li><strong>Public datasets.</strong> Common Crawl or open e-commerce domain lists, if you want large volumes.</li>
+</ul>
+<p>Don't worry about cleaning the list. Non-Shopify domains come back as <code>isShopify: false</code> and cost nothing.</p>
+<h2>Step 2: Detect apps in bulk</h2>
+<p><strong>No code:</strong> open the <a href="https://apify.com/ninoventures/shopify-app-tech-detector">Actor page</a>, paste domains into <em>Store URLs or domains</em> and click <strong>Start</strong>. A typical store takes 1–3 seconds. Download the result as CSV, Excel or JSON.</p>
+<p><strong>With code</strong> (Node.js, <code>npm i apify-client</code>):</p>
+<pre><code class="language-js">import { ApifyClient } from &quot;apify-client&quot;;
+
+const client = new ApifyClient({ token: process.env.APIFY_TOKEN });
+
+const run = await client.actor(&quot;ninoventures/shopify-app-tech-detector&quot;).call({
+  stores: [&quot;allbirds.com&quot;, &quot;tentree.com&quot;, &quot;deathwishcoffee.com&quot;, &quot;colourpop.com&quot;],
+  countProducts: true,
+});
+
+const { items } = await client.dataset(run.defaultDatasetId).listItems();
+console.log(items.length, &quot;stores analyzed&quot;);
+</code></pre>
+<p><strong>Python</strong> (<code>pip install apify-client</code>):</p>
+<pre><code class="language-python">from apify_client import ApifyClient
+import os
+
+client = ApifyClient(os.environ[&quot;APIFY_TOKEN&quot;])
+run = client.actor(&quot;ninoventures/shopify-app-tech-detector&quot;).call(
+    run_input={&quot;stores&quot;: [&quot;allbirds.com&quot;, &quot;tentree.com&quot;], &quot;countProducts&quot;: True}
+)
+items = client.dataset(run[&quot;defaultDatasetId&quot;]).list_items().items
+</code></pre>
+<p>Each row looks like this (shortened):</p>
+<pre><code class="language-json">{
+  &quot;domain&quot;: &quot;www.allbirds.com&quot;,
+  &quot;isShopify&quot;: true,
+  &quot;status&quot;: &quot;ok&quot;,
+  &quot;storeName&quot;: &quot;Allbirds&quot;,
+  &quot;country&quot;: &quot;US&quot;,
+  &quot;currency&quot;: &quot;USD&quot;,
+  &quot;theme&quot;: { &quot;name&quot;: &quot;[DNAM Theme July 2026]&quot;, &quot;isCustomTheme&quot;: true },
+  &quot;appCount&quot;: 5,
+  &quot;apps&quot;: [
+    { &quot;name&quot;: &quot;Attentive&quot;, &quot;category&quot;: &quot;Email &amp; SMS marketing&quot;, &quot;evidence&quot;: &quot;attn.tv&quot; },
+    { &quot;name&quot;: &quot;Redo&quot;, &quot;category&quot;: &quot;Returns &amp; shipping protection&quot;, &quot;evidence&quot;: &quot;getredo.com&quot; }
+  ],
+  &quot;appCategories&quot;: [&quot;Analytics &amp; CRO&quot;, &quot;Email &amp; SMS marketing&quot;, &quot;Returns &amp; shipping protection&quot;],
+  &quot;productCount&quot;: 356,
+  &quot;priceRange&quot;: { &quot;min&quot;: 0.8, &quot;max&quot;: 165 },
+  &quot;contactEmail&quot;: &quot;help@allbirds.com&quot;,
+  &quot;socialLinks&quot;: { &quot;instagram&quot;: &quot;https://www.instagram.com/allbirds&quot; }
+}
+</code></pre>
+<h2>Step 3: Filter for the app you care about</h2>
+<p>Say you build a reviews app and want stores that use <strong>Judge.me</strong> or <strong>Yotpo</strong>, sell in USD and have a real catalog:</p>
+<pre><code class="language-js">const TARGET_APPS = [&quot;Judge.me&quot;, &quot;Yotpo&quot;];
+
+const leads = items
+  .filter((s) =&gt; s.isShopify &amp;&amp; s.status === &quot;ok&quot;)
+  .filter((s) =&gt; s.apps?.some((a) =&gt; TARGET_APPS.includes(a.name)))
+  .filter((s) =&gt; s.currency === &quot;USD&quot; &amp;&amp; (s.productCount ?? 0) &gt;= 50)
+  .map((s) =&gt; ({
+    store: s.storeName,
+    domain: s.domain,
+    uses: s.apps.filter((a) =&gt; TARGET_APPS.includes(a.name)).map((a) =&gt; a.name).join(&quot;, &quot;),
+    products: s.productCount,
+    theme: s.theme?.name,
+    instagram: s.socialLinks?.instagram ?? &quot;&quot;,
+  }));
+
+console.table(leads);
+</code></pre>
+<p>Other useful filters:</p>
+<ul>
+<li><strong>By category, not brand:</strong> <code>s.appCategories.includes("Subscriptions")</code> finds every store with <em>any</em> subscription app.</li>
+<li><strong>Gaps:</strong> stores with a high <code>productCount</code> but <strong>no</strong> reviews app are prospects for one.</li>
+<li><strong>Stack fit:</strong> <code>theme.isCustomTheme</code> signals a bigger brand with a dev team. A Theme Store theme signals a smaller merchant.</li>
+<li><strong>Catalog size and price range</strong> to estimate store size and AOV.</li>
+</ul>
+<h2>Step 4: Monitor installs and uninstalls (the best signal)</h2>
+<p>A static list tells you who uses an app. <strong>Changes</strong> tell you who is deciding <em>right now</em>.</p>
+<ol>
+<li>Enable <strong>Monitoring mode</strong> and set a <strong>Monitoring storage name</strong> (for example <code>reviews-competitors</code>).</li>
+<li>Run once to save a baseline.</li>
+<li><a href="https://docs.apify.com/platform/schedules">Schedule</a> the Actor daily or weekly with the same store list.</li>
+<li>Enable <strong>Output only stores with changes</strong> to get a pure change feed. You're not charged for unchanged stores.</li>
+</ol>
+<p>Every changed row then includes:</p>
+<pre><code class="language-json">&quot;monitoring&quot;: {
+  &quot;appsInstalled&quot;: [&quot;Rebuy&quot;],
+  &quot;appsRemoved&quot;: [&quot;Privy&quot;],
+  &quot;themeChanged&quot;: null,
+  &quot;hasChanges&quot;: true
+}
+</code></pre>
+<p>Pipe that into Slack, Google Sheets, Make, Zapier or a webhook through Apify integrations, and you get an alert the day a store drops your competitor.</p>
+<h2>Step 5: Use the data responsibly</h2>
+<p>The detector only reads <strong>public</strong> storefront pages, the same thing any visitor's browser sees. It respects <code>robots.txt</code> if you enable that option, and it doesn't log in anywhere. How you <em>use</em> the results is up to you:</p>
+<ul>
+<li>Outreach rules differ by country. B2B email to companies is regulated by laws like GDPR and ePrivacy in the EU/UK and CAN-SPAM in the US. Use public business addresses, be relevant, identify yourself and make opting out easy.</li>
+<li>Lead with value. "I noticed you recently switched reviews apps, here's a migration guide" works far better than a generic pitch.</li>
+<li>Don't hammer stores. Reasonable concurrency is the default.</li>
+</ul>
+<h2>Cost example</h2>
+<table>
+<thead>
+<tr>
+<th>Volume</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1,000 stores</td>
+<td>$5</td>
+</tr>
+<tr>
+<td>10,000 stores</td>
+<td>$50</td>
+</tr>
+<tr>
+<td>Weekly monitoring of 2,000 stores (changes only)</td>
+<td>You pay only for stores analyzed, and unchanged stores are skipped when <em>Output only stores with changes</em> is on</td>
+</tr>
+</tbody>
+</table>
+<p>Apify's free plan includes monthly credits, enough to try this on about a thousand stores at no cost.</p>
+<p><strong>Try it:</strong> <a href="https://apify.com/ninoventures/shopify-app-tech-detector">Shopify App &amp; Theme Detector + App Install Monitor on Apify</a></p></main>
+<footer><div class="wrap"><p><a href="../index.html">Home</a><a href="../blog/index.html">Blog</a><a href="../mcp-server-starter-kit.html">MCP Server Starter Kit Pro</a><a href="../terms.html">Terms</a><a href="../refund.html">Refund policy</a><a href="../privacy.html">Privacy</a><a href="mailto:nino.ventures@agentmail.to">Support</a></p><p>&copy; 2026 Nino Ventures &middot; Developer tools &amp; data tools &middot; nino.ventures@agentmail.to</p></div></footer></body></html>

@@ -1,0 +1,207 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to deploy a remote MCP server to Cloudflare Workers (stateless Streamable HTTP)</title><meta name="description" content="Step-by-step: build a stateless Streamable HTTP MCP server in TypeScript, deploy it to Cloudflare Workers, connect Claude Code and Cursor, and verify it with a preflight check."><link rel="canonical" href="https://ninonorden.github.io/ninoventures/blog/deploy-remote-mcp-server-cloudflare-workers.html">
+<meta property="og:title" content="How to deploy a remote MCP server to Cloudflare Workers (stateless Streamable HTTP)"><meta property="og:description" content="Step-by-step: build a stateless Streamable HTTP MCP server in TypeScript, deploy it to Cloudflare Workers, connect Claude Code and Cursor, and verify it with a preflight check."><meta property="og:type" content="article">
+<link rel="stylesheet" href="../style.css"></head><body>
+<header><div class="wrap"><a class="logo" href="../index.html">Nino <span>Ventures</span></a><nav><a href="../mcp-server-starter-kit.html">MCP Starter Kit</a><a href="../blog/index.html">Blog</a><a href="../index.html#contact">Contact</a></nav></div></header>
+<main class="wrap doc article"><p class="meta">Nino Ventures &middot; 2026-10-31</p><h1>How to deploy a remote MCP server to Cloudflare Workers (stateless Streamable HTTP)</h1>
+<p>Local stdio MCP servers are great until you want a teammate, a customer or ChatGPT to use your tools. Then you need a <strong>remote</strong> MCP server: an HTTPS endpoint that speaks the Model Context Protocol over <strong>Streamable HTTP</strong>.</p>
+<p>Cloudflare Workers is one of the nicest places to host one: global, cheap (the free plan covers 100k requests/day), no servers to patch, and deploys take seconds. The catch is that Workers are <strong>isolates</strong>: there is no long-lived process and no shared memory between requests. So the server has to be <strong>stateless</strong>.</p>
+<p>This guide shows the whole path in about 15 minutes:</p>
+<ol>
+<li>Why stateless Streamable HTTP is the right design for Workers</li>
+<li>The server code (TypeScript, official MCP SDK + Hono)</li>
+<li>Run it locally and on the Workers runtime</li>
+<li>Deploy with Wrangler</li>
+<li>Connect Claude Code, Cursor and the MCP Inspector</li>
+<li>Verify the deployment with a preflight check, and the mistakes it catches</li>
+</ol>
+<p>All the code is in a free, MIT-licensed template: <strong><a href="https://github.com/ninonorden/mcp-server-starter">ninonorden/mcp-server-starter</a></strong>. You can clone it and skip to step 4.</p>
+<h2>1. Stateless Streamable HTTP in one paragraph</h2>
+<p>Streamable HTTP replaced the old HTTP+SSE transport. The client sends every JSON-RPC message as a <code>POST</code> to one endpoint (usually <code>/mcp</code>). The server answers with plain JSON or with an SSE stream. A server <em>may</em> hand out an <code>Mcp-Session-Id</code> and keep state per session, but it doesn't have to.</p>
+<p>On Workers you want the stateless mode:</p>
+<ul>
+<li><strong>No session id.</strong> Each <code>POST</code> creates a fresh MCP server, handles the request and is discarded.</li>
+<li><strong>JSON responses</strong> (<code>enableJsonResponse: true</code>). No long-lived streams that a Worker would have to hold open.</li>
+<li><strong><code>GET /mcp</code> and <code>DELETE /mcp</code> answer <code>405</code>.</strong> That is how a client learns there is no server-initiated stream. If they fall through to an HTML page instead, many clients reconnect in a tight loop.</li>
+</ul>
+<p>Any isolate in any data center can now answer any request. Deploys never drop sessions, because there are none.</p>
+<h2>2. The code</h2>
+<p>Install the dependencies:</p>
+<pre><code class="language-bash">npm init -y
+npm install @modelcontextprotocol/sdk hono zod
+npm install -D typescript wrangler @types/node
+</code></pre>
+<h3><code>src/server.ts</code>: your tools</h3>
+<pre><code class="language-ts">import { McpServer } from &quot;@modelcontextprotocol/sdk/server/mcp.js&quot;;
+import { z } from &quot;zod&quot;;
+
+export function createMcpServer(): McpServer {
+  const server = new McpServer({ name: &quot;my-mcp-server&quot;, version: &quot;1.0.0&quot; });
+
+  server.registerTool(
+    &quot;time_in_zone&quot;,
+    {
+      title: &quot;Current time in a time zone&quot;,
+      description:
+        &quot;Returns the current date and time in an IANA time zone (e.g. Europe/Amsterdam). Use it whenever the user asks what time it is somewhere.&quot;,
+      inputSchema: { timeZone: z.string().min(1).max(64) },
+      annotations: { readOnlyHint: true },
+    },
+    async ({ timeZone }) =&gt; {
+      try {
+        const local = new Intl.DateTimeFormat(&quot;en-GB&quot;, { timeZone, dateStyle: &quot;full&quot;, timeStyle: &quot;long&quot; }).format(new Date());
+        return { content: [{ type: &quot;text&quot;, text: `${local} (${timeZone})` }] };
+      } catch {
+        return { isError: true, content: [{ type: &quot;text&quot;, text: `Unknown time zone &quot;${timeZone}&quot;.` }] };
+      }
+    },
+  );
+
+  return server;
+}
+</code></pre>
+<p>Two details matter more than they look. First, write the <code>description</code> <strong>for the model</strong>: say what the tool does and when to use it, because that is how the model picks tools. Second, return <code>isError: true</code> with a helpful message instead of throwing, so the model can recover.</p>
+<h3><code>src/app.ts</code>: the HTTP layer</h3>
+<p>The SDK ships a transport built on web-standard <code>Request</code>/<code>Response</code>, which is exactly what Workers use:</p>
+<pre><code class="language-ts">import { Hono } from &quot;hono&quot;;
+import { WebStandardStreamableHTTPServerTransport } from &quot;@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js&quot;;
+import { createMcpServer } from &quot;./server.js&quot;;
+
+const rpcError = (status: number, message: string) =&gt;
+  new Response(JSON.stringify({ jsonrpc: &quot;2.0&quot;, error: { code: -32000, message }, id: null }), {
+    status,
+    headers: { &quot;content-type&quot;: &quot;application/json&quot; },
+  });
+
+export function createApp() {
+  const app = new Hono();
+
+  app.post(&quot;/mcp&quot;, async (c) =&gt; {
+    const server = createMcpServer();
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined, // stateless
+      enableJsonResponse: true,      // no long-lived SSE streams
+    });
+    await server.connect(transport);
+    try {
+      return await transport.handleRequest(c.req.raw);
+    } finally {
+      void server.close();
+    }
+  });
+
+  // Stateless server: no GET stream, no session to delete.
+  app.get(&quot;/mcp&quot;, () =&gt; rpcError(405, &quot;Method not allowed&quot;));
+  app.delete(&quot;/mcp&quot;, () =&gt; rpcError(405, &quot;Method not allowed&quot;));
+
+  // Never answer unknown paths (including /.well-known/*) with HTML.
+  app.notFound(() =&gt; new Response(JSON.stringify({ error: &quot;not_found&quot; }), {
+    status: 404,
+    headers: { &quot;content-type&quot;: &quot;application/json&quot; },
+  }));
+
+  return app;
+}
+</code></pre>
+<p>The template also checks the <code>Origin</code> header (to block DNS-rebinding style attacks from browsers) and caps the request body size. Both take a few lines each.</p>
+<h3><code>src/worker.ts</code> and <code>wrangler.toml</code></h3>
+<pre><code class="language-ts">import { createApp } from &quot;./app.js&quot;;
+
+const app = createApp();
+export default { fetch: (request: Request) =&gt; app.fetch(request) };
+</code></pre>
+<pre><code class="language-toml">name = &quot;my-mcp-server&quot;
+main = &quot;src/worker.ts&quot;
+compatibility_date = &quot;2026-05-01&quot;
+compatibility_flags = [&quot;nodejs_compat&quot;]
+</code></pre>
+<p><code>nodejs_compat</code> lets the MCP SDK use the Node built-ins it expects. Pick a recent <code>compatibility_date</code>, but not a future one. Wrangler refuses dates newer than its bundled runtime.</p>
+<h2>3. Run it locally</h2>
+<pre><code class="language-bash">npx wrangler dev        # http://127.0.0.1:8787/mcp on the real Workers runtime (workerd)
+</code></pre>
+<p>Quick smoke test with curl:</p>
+<pre><code class="language-bash">curl -s http://127.0.0.1:8787/mcp \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  -d '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;initialize&quot;,&quot;params&quot;:{&quot;protocolVersion&quot;:&quot;2025-06-18&quot;,&quot;capabilities&quot;:{},&quot;clientInfo&quot;:{&quot;name&quot;:&quot;curl&quot;,&quot;version&quot;:&quot;0&quot;}}}'
+</code></pre>
+<p>You should get a JSON <code>result</code> with <code>serverInfo</code>. Note the <code>accept</code> header: Streamable HTTP clients must accept both JSON and SSE, and the SDK rejects requests that don't.</p>
+<h2>4. Deploy</h2>
+<pre><code class="language-bash">npx wrangler login
+npx wrangler deploy
+# → https://my-mcp-server.&lt;your-subdomain&gt;.workers.dev
+</code></pre>
+<p>Your MCP endpoint is <code>https://my-mcp-server.&lt;your-subdomain&gt;.workers.dev/mcp</code>. For a custom domain, add a route in the Cloudflare dashboard (Workers → your Worker → Settings → Domains &amp; Routes).</p>
+<h2>5. Connect clients</h2>
+<p><strong>Claude Code</strong></p>
+<pre><code class="language-bash">claude mcp add --transport http my-server https://my-mcp-server.&lt;you&gt;.workers.dev/mcp
+</code></pre>
+<p><strong>Cursor</strong> (<code>.cursor/mcp.json</code> or global settings)</p>
+<pre><code class="language-json">{ &quot;mcpServers&quot;: { &quot;my-server&quot;: { &quot;url&quot;: &quot;https://my-mcp-server.&lt;you&gt;.workers.dev/mcp&quot; } } }
+</code></pre>
+<p><strong>MCP Inspector</strong></p>
+<pre><code class="language-bash">npx @modelcontextprotocol/inspector
+</code></pre>
+<p>Pick transport "Streamable HTTP", paste the URL, then List Tools → <code>time_in_zone</code> → Run.</p>
+<h2>6. Verify before you share the URL</h2>
+<p>Most broken remote MCP servers aren't broken in the tool logic. They're broken at the HTTP edges, and the failure only shows up in <em>some</em> clients. The template includes a <code>preflight</code> script that tests a deployed URL like a picky client would:</p>
+<pre><code class="language-bash">npm run preflight -- https://my-mcp-server.&lt;you&gt;.workers.dev/mcp
+</code></pre>
+<pre><code>HTTP methods
+  ✓ GET -&gt; 405
+  ✓ DELETE -&gt; 405
+Discovery paths
+  ✓ /.well-known/oauth-protected-resource/mcp -&gt; 404
+  ✓ /.well-known/oauth-protected-resource -&gt; 404
+  ✓ /.well-known/oauth-authorization-server -&gt; 404
+Auth challenge
+  ! unauthenticated tools/call -&gt; 200 (server is public; make sure that is intended)
+MCP session
+  ✓ initialize -&gt; mcp-server-starter@1.0.0 in 27 ms
+  ✓ tools/list -&gt; 1 tools in 15 ms
+
+PASSED: 0 failure(s), 1 warning(s)
+</code></pre>
+<p>What it catches, and why each one matters:</p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>What clients do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /mcp</code> returns your HTML page or SPA fallback</td>
+<td>The client thinks the SSE stream dropped and reconnects, sometimes hundreds of times a minute</td>
+</tr>
+<tr>
+<td><code>/.well-known/oauth-protected-resource</code> returns <code>200</code> HTML</td>
+<td>OAuth-capable clients try to parse it as JSON metadata and fail the connection</td>
+</tr>
+<tr>
+<td><code>401</code> without a <code>WWW-Authenticate</code> header</td>
+<td>The client can't discover how to authenticate, so the user sees a generic error</td>
+</tr>
+<tr>
+<td>Tools without descriptions or annotations</td>
+<td>Models pick the wrong tool, and clients can't ask for confirmation before destructive calls</td>
+</tr>
+<tr>
+<td>Tool names with dots or spaces</td>
+<td>Several clients reject the whole tool list</td>
+</tr>
+</tbody>
+</table>
+<p>Run it in CI after every deploy and you won't hear about these from users.</p>
+<h2>Going to production: auth, limits, tenants</h2>
+<p>The warning in the output above is the important one: <strong>this server is public</strong>. Before real users connect, you'll want:</p>
+<ul>
+<li><strong>Authentication.</strong> Use API keys for Claude Code and Cursor (they send an <code>Authorization</code> header) and an <strong>OAuth 2.1 resource server</strong> for connector-style clients like ChatGPT and Claude.ai. That means serving protected-resource metadata, validating JWTs against the issuer's JWKS and checking the audience.</li>
+<li><strong>Per-caller isolation.</strong> Since you already create one server per request, bind it to the authenticated caller so customer A's tools can never see customer B's data.</li>
+<li><strong>Rate limits and timeouts.</strong> Agents in a loop will call your tool thousands of times. On Workers, use the Rate Limiting binding or Durable Objects.</li>
+<li><strong>Metering</strong> if you plan to charge per tool call.</li>
+</ul>
+<p>If you'd rather not build that layer yourself, the <strong><a href="https://ninonorden.github.io/ninoventures/mcp-server-starter-kit.html">MCP Server Starter Kit Pro</a></strong> ($39, 14-day money-back guarantee) adds API keys, OAuth 2.1, tenant isolation, rate limiting, metering, a Python version, deploy configs for Workers, Vercel, Fly, Docker and Apify, and 48 tests on top of the free template.</p>
+<p>Either way, start with the free template: <strong><a href="https://github.com/ninonorden/mcp-server-starter">github.com/ninonorden/mcp-server-starter</a></strong>. Clone it, <code>npm run cf:deploy</code>, run preflight, and you have a remote MCP server in production today.</p></main>
+<footer><div class="wrap"><p><a href="../index.html">Home</a><a href="../blog/index.html">Blog</a><a href="../mcp-server-starter-kit.html">MCP Server Starter Kit Pro</a><a href="../terms.html">Terms</a><a href="../refund.html">Refund policy</a><a href="../privacy.html">Privacy</a><a href="mailto:nino.ventures@agentmail.to">Support</a></p><p>&copy; 2026 Nino Ventures &middot; Developer tools &amp; data tools &middot; nino.ventures@agentmail.to</p></div></footer></body></html>
