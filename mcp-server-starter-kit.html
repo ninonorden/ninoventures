@@ -1,42 +1,49 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MCP Server Starter Kit Pro: ship a production MCP server today</title><meta name="description" content="TypeScript and Python starter kit for production MCP servers with OAuth 2.1, API keys, stateless Streamable HTTP, rate limits and deploy configs. $39 one-time, 14-day money-back guarantee."><link rel="stylesheet" href="style.css"></head><body>
+<title>MCP Server Starter Kit Pro: remote MCP server template (TypeScript + Python)</title><meta name="description" content="TypeScript and Python starter kit for production MCP servers with OAuth 2.1, API keys, stateless Streamable HTTP, rate limits and deploy configs. $39 one-time, 14-day money-back guarantee."><link rel="stylesheet" href="style.css"></head><body>
 <header><div class="wrap"><a class="logo" href="index.html">Nino <span>Ventures</span></a><nav><a href="mcp-server-starter-kit.html">MCP Starter Kit</a><a href="index.html#tools">Tools</a><a href="blog/index.html">Blog</a><a href="index.html#contact">Contact</a></nav></div></header>
 <main class="wrap">
-<section class="hero"><p class="meta">MCP Server Starter Kit Pro &middot; by Nino Ventures</p>
-<h1>Ship a production MCP server this afternoon, not in two weeks.</h1>
-<p class="lead">A TypeScript and Python starter kit for MCP servers that real clients (Claude, Cursor, ChatGPT, agents) connect to without breaking. It includes stateless Streamable HTTP, API keys and OAuth 2.1 done to spec, rate limits, tenant isolation, and deploy configs for Workers, Vercel, Fly, Docker and Apify.</p>
-<a class="btn" href="https://buy.polar.sh/polar_cl_MdemhJ72jGx4ILhnmA3Sq1VDyMRO215Dd7Uke3FQVIe">Buy now — $39</a>
-<p class="meta">One-time payment &middot; Free v1.x updates &middot; Unlimited projects &middot; 14-day money-back guarantee</p>
+<section class="hero"><p class="meta">MCP Server Starter Kit Pro &middot; Nino Ventures</p>
+<h1>A remote MCP server template with auth, tests and deploy configs.</h1>
+<p class="lead">TypeScript and Python. Stateless Streamable HTTP and stdio, API keys and OAuth 2.1, rate limits, per-caller isolation. Deploys to Workers, Vercel, Fly, Docker or Apify. 48 tests run against a real MCP client.</p>
+<a class="btn" href="https://buy.polar.sh/polar_cl_MdemhJ72jGx4ILhnmA3Sq1VDyMRO215Dd7Uke3FQVIe">Buy now: $39</a><a class="btn ghost" href="https://github.com/ninonorden/mcp-server-starter">Try the free version</a>
+<p class="meta">One-time payment. Free v1.x updates. Unlimited projects. 14-day refund.</p>
 <img class="cover" src="cover.png" alt="MCP Server Starter Kit Pro"></section>
 
-<h2>The problem</h2><p>The tool logic takes an afternoon. Then production starts:</p><ul>
-<li>Sessions break once you run a second replica.</li>
-<li><code>.well-known/oauth-protected-resource</code> returns your HTML 404 page and the client crashes.</li>
-<li>GET on <code>/mcp</code> falls through to a catch-all, and a client reconnects 400 times a minute.</li>
-<li>Keys sit in plain text in env, and nothing stops an agent loop from running up your bill.</li></ul>
+<h2>Why</h2>
+<p>The tools themselves take an afternoon. Most of the time goes into the HTTP layer, and the bugs only show up in some clients:</p>
+<ul>
+<li>With sessions in memory, the second replica answers "session not found".</li>
+<li><code>/.well-known/oauth-protected-resource</code> returns your HTML 404 page, the client tries to parse it as JSON and the connection fails.</li>
+<li><code>GET /mcp</code> hits a catch-all route and the client reconnects in a loop.</li>
+<li>API keys sit in plain text in env, and an agent stuck in a loop can call your paid upstream API thousands of times.</li>
+</ul>
 
-<h2>The fix</h2><table><tr><th>You get</th><th>So that</th></tr>
-<tr><td>Stateless Streamable HTTP + stdio</td><td>Any replica serves any request; deploys don't drop users</td></tr>
-<tr><td>API keys (hashed, scoped) + OAuth 2.1 resource server</td><td>Works with Claude Code and Cursor headers <em>and</em> OAuth-only connectors</td></tr>
-<tr><td>Per-request server bound to the caller</td><td>Customer A never sees customer B's data</td></tr>
-<tr><td>Rate limits, Origin checks, SSRF-safe fetch, timeouts</td><td>Agents in a loop don't take you down or run up the bill</td></tr>
-<tr><td>Metering hook + Apify pay-per-event Actor</td><td>You can charge per tool call from day one</td></tr>
-<tr><td><code>preflight</code> CLI</td><td>One command tells you if a deployed URL will work for real clients</td></tr>
-<tr><td>48 tests with a real MCP client</td><td>You change code knowing what still works</td></tr></table>
+<h2>What's in it</h2>
+<table><tr><th>Part</th><th>Details</th></tr>
+<tr><td>Transport</td><td>Stateless Streamable HTTP and stdio. Each request gets a new server, so no sticky sessions.</td></tr>
+<tr><td>API keys</td><td>Bearer or <code>x-api-key</code>. Stored as sha256 hashes, scoped per key, compared in constant time.</td></tr>
+<tr><td>OAuth 2.1</td><td>Resource server with JWKS, issuer, audience and expiry checks, plus RFC 9728 metadata. Works with Auth0, WorkOS, Clerk and Keycloak.</td></tr>
+<tr><td>Isolation</td><td>The per-request server is bound to the caller. Tenant A can't read tenant B's data.</td></tr>
+<tr><td>Limits</td><td>Per-user rate limits with <code>Retry-After</code>, Origin check, body limit, per-tool timeouts, and an HTTP tool that blocks private IPs.</td></tr>
+<tr><td>Billing</td><td>A metering hook that only fires on successful calls, and an Apify pay-per-event Actor.</td></tr>
+<tr><td><code>preflight</code></td><td>Checks a deployed URL: GET/DELETE handling, <code>.well-known</code> paths, the 401 challenge, the handshake and tool metadata.</td></tr>
+<tr><td>Tests</td><td>33 TypeScript tests and 15 Python tests, all through a real MCP client.</td></tr>
+<tr><td>Docs</td><td>Architecture, auth, clients, deploy, monetization, production checklist, publishing. Plus <code>AGENTS.md</code> for your coding assistant.</td></tr></table>
 
-<h2>What's in the zip</h2><p><code>typescript/</code> &middot; <code>python/</code> &middot; <code>docs/</code> (architecture, auth, clients, deploy, monetize, checklist, publish) &middot; <code>.github/workflows/ci.yml</code> &middot; <code>AGENTS.md</code> for your AI coding assistant &middot; license.</p>
+<h2>Free version vs Pro</h2>
+<p>The <a href="https://github.com/ninonorden/mcp-server-starter">free starter</a> (MIT) has the stateless transport, stdio, Workers support, <code>preflight</code> and 11 tests. It has no auth, so anything you deploy with it is public. Pro adds auth, isolation, limits, billing, the Python version and the docs.</p>
 
-<h2>How is this different from free templates?</h2><p>Free templates show you the protocol. This kit covers what comes after: auth to spec, scaling, abuse protection, billing, and a checker that tells you when something is wrong. Both stacks run on the latest official SDKs (TS SDK 1.32; Python SDK v2).</p>
+<h2>Versions</h2>
+<p>TypeScript SDK 1.32 on Hono. Python SDK v2. Node 20 or later, Python 3.11 or later.</p>
 
-<div class="guarantee"><h3>14-day money-back guarantee</h3><p>If the kit doesn't run for you and we can't fix it, email <a href="mailto:nino.ventures@agentmail.to">nino.ventures@agentmail.to</a> within 14 days of purchase for a full refund. See the <a href="refund.html">refund policy</a>.</p></div>
+<div class="guarantee"><h3>14-day refund</h3><p>If the kit doesn't run for you and we can't fix it, email <a href="mailto:nino.ventures@agentmail.to">nino.ventures@agentmail.to</a> within 14 days for a full refund. See the <a href="refund.html">refund policy</a>.</p></div>
 
 <h2>FAQ</h2>
-<p><strong>Which clients does it work with?</strong> Anything that speaks MCP: Claude Code, Claude Desktop, Cursor, VS Code, ChatGPT connectors (OAuth), the OpenAI Agents SDK, LangChain, Vercel AI SDK and more. Config snippets are included.</p>
-<p><strong>Do I need both languages?</strong> No. Each folder stands on its own.</p>
-<p><strong>Can I use it for client work?</strong> Yes, unlimited projects. You just can't resell the kit itself as a template.</p>
-<p><strong>How do I get it?</strong> After checkout you get an instant download of the zip. Payments are handled by Polar, our merchant of record, which also takes care of sales tax/VAT.</p>
-<p><strong>Support?</strong> <a href="mailto:nino.ventures@agentmail.to">nino.ventures@agentmail.to</a></p>
-<a class="btn" id="buy" href="https://buy.polar.sh/polar_cl_MdemhJ72jGx4ILhnmA3Sq1VDyMRO215Dd7Uke3FQVIe">Buy now — $39</a>
-<p class="meta">$39 one-time &middot; 14-day money-back guarantee</p>
+<p><strong>Which clients?</strong> Claude Code, Claude Desktop, Cursor, VS Code, ChatGPT connectors (OAuth), the OpenAI Agents SDK, LangChain and the Vercel AI SDK. Config snippets for each are in <code>docs/CLIENTS.md</code>.</p>
+<p><strong>Do I need both languages?</strong> No. Each folder works on its own.</p>
+<p><strong>Client work?</strong> Yes, unlimited projects. You can't resell the kit itself as a template.</p>
+<p><strong>How is it delivered?</strong> You get a zip download right after checkout. Polar handles payment and VAT as merchant of record.</p>
+<p><strong>Support:</strong> <a href="mailto:nino.ventures@agentmail.to">nino.ventures@agentmail.to</a></p>
+<a class="btn" id="buy" href="https://buy.polar.sh/polar_cl_MdemhJ72jGx4ILhnmA3Sq1VDyMRO215Dd7Uke3FQVIe">Buy now: $39</a>
 </main>
 <footer><div class="wrap"><p><a href="index.html">Home</a><a href="mcp-server-starter-kit.html">MCP Server Starter Kit Pro</a><a href="terms.html">Terms</a><a href="refund.html">Refund policy</a><a href="privacy.html">Privacy</a><a href="mailto:nino.ventures@agentmail.to">Support</a></p><p>&copy; 2026 Nino Ventures &middot; Developer tools &amp; data tools &middot; nino.ventures@agentmail.to</p></div></footer></body></html>
