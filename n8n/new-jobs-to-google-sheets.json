@@ -1,0 +1,259 @@
+{
+  "name": "Daily new job postings from target companies to Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Daily new job postings from target companies to Google Sheets\n\n### How it works\nEvery morning this workflow reads the career sites of the companies you list (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee and Personio boards) and appends only the jobs that appeared since the previous run to a Google Sheet. Useful for recruiters tracking hiring at client companies, sales teams watching for expansion signals, and job seekers.\n\nIt uses the [Career Site Jobs Scraper](https://apify.com/ninoventures/career-site-jobs) actor on Apify. You give company domains; the actor finds the job board itself. With \"only new jobs\" on, it remembers what it returned before, so rows aren't duplicated. The first run fills the sheet with all current openings that match your filters.\n\n### Setup\n1. Create an Apify account and copy your API token.\n2. In **Fetch new jobs**, create a Header Auth credential: name `Authorization`, value `Bearer YOUR_TOKEN`.\n3. Create a Google Sheet with a tab named `Jobs` and this header row: Found on, Company, Title, Department, Location, Remote, Salary, Posted, Link, Board.\n4. Connect Google Sheets in **Append jobs to sheet** and paste the sheet URL into **Settings**.\n5. Set the companies and optional title and location keywords in **Settings**.\n\n### Cost\n$1.50 per 1,000 jobs. Filters run before charging, so excluded jobs are free.\n\n### Customization\nAdd a Slack step after the sheet, or set `remoteOnly` to true.",
+        "height": 800,
+        "width": 420
+      },
+      "id": "338d9f1f-324f-4940-879a-238bb426f27e",
+      "name": "Sticky 29ee24",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Configure\nCompanies, keyword filters and the sheet URL.",
+        "height": 300,
+        "width": 260,
+        "color": 7
+      },
+      "id": "aaaced97-eed4-4e56-9823-48a5184e218e",
+      "name": "Sticky 0c4c61",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Get new jobs\nThe actor finds each company's job board and returns only postings it hasn't returned before.",
+        "height": 300,
+        "width": 260,
+        "color": 7
+      },
+      "id": "cb5906d1-5eae-419e-943d-254b0fc06278",
+      "name": "Sticky e381f1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        300,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Write to the sheet\nOne row per new job. Salary is filled only when the company publishes it.",
+        "height": 300,
+        "width": 480,
+        "color": 7
+      },
+      "id": "a5444319-d57e-4867-bcfa-0a2733dc7da4",
+      "name": "Sticky fbb515",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        600,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "493a9278-dbc5-43d0-a42f-6343ce7bb236",
+      "name": "Every day 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -180,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "07b1c833-5a40-4d57-adb7-d184a0f2d8c9",
+              "name": "companies",
+              "value": "stripe.com, airbnb.com, ramp.com, notion.so, figma.com",
+              "type": "string"
+            },
+            {
+              "id": "6d14a753-3d10-4ebc-83b6-2ffccdd4c261",
+              "name": "titleKeywords",
+              "value": "engineer, developer",
+              "type": "string"
+            },
+            {
+              "id": "6914807d-9b40-4ffb-9b58-810a7e16a816",
+              "name": "locationKeywords",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "66e44a0a-3433-42e1-b649-bdbdde575a69",
+              "name": "remoteOnly",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "b8647224-c966-44a7-b74d-f113113ae181",
+              "name": "monitorName",
+              "value": "daily-jobs",
+              "type": "string"
+            },
+            {
+              "id": "a08bc5a9-1e28-4bd1-bf94-fe58e4b8c6ee",
+              "name": "sheetUrl",
+              "value": "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1dca039-90dd-448f-b9d8-6cd036280c9e",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/ninoventures~career-site-jobs/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ companies: $json.companies.split(',').map(s => s.trim()).filter(Boolean), titleKeywords: $json.titleKeywords.split(',').map(s => s.trim()).filter(Boolean), locationKeywords: $json.locationKeywords.split(',').map(s => s.trim()).filter(Boolean), remoteOnly: $json.remoteOnly, onlyNewJobs: true, monitorName: $json.monitorName }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "ea90c917-c336-492e-bf3f-651926851ddd",
+      "name": "Fetch new jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        120
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turns each new job into one sheet row. Nothing new means nothing is written.\nconst jobs = $input.all().map((i) => i.json).filter((j) => j.jobId && j.title);\nconst today = new Date().toISOString().slice(0, 10);\nconst salary = (j) => {\n  if (!j.salaryMin && !j.salaryMax) return '';\n  const f = (n) => (n ? Number(n).toLocaleString('en-US') : '?');\n  return `${f(j.salaryMin)} - ${f(j.salaryMax)} ${j.salaryCurrency || ''}`.trim();\n};\nreturn jobs.map((j) => ({ json: {\n  'Found on': today,\n  Company: j.company,\n  Title: j.title,\n  Department: j.department || '',\n  Location: j.location || '',\n  Remote: j.remote === true ? 'yes' : j.remote === false ? 'no' : '',\n  Salary: salary(j),\n  Posted: j.postedAt ? String(j.postedAt).slice(0, 10) : '',\n  Link: j.url,\n  Board: j.ats,\n}}));"
+      },
+      "id": "0c75136b-633f-4d6e-a212-4141d1c5fb53",
+      "name": "Shape sheet rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Settings').first().json.sheetUrl }}",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Jobs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "79a9ad4f-7765-434b-9d58-2d74bcfc13d2",
+      "name": "Append jobs to sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        920,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Every day 07:00": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Fetch new jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch new jobs": {
+      "main": [
+        [
+          {
+            "node": "Shape sheet rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape sheet rows": {
+      "main": [
+        [
+          {
+            "node": "Append jobs to sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

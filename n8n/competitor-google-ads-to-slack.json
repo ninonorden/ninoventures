@@ -1,0 +1,251 @@
+{
+  "name": "Weekly digest of new competitor Google ads in Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Weekly digest of new competitor Google ads in Slack\n\n### How it works\nEvery Monday this workflow checks Google's Ads Transparency Center for your competitors and posts one Slack message with the ads that started since last week: counts by format (text, image, video), the landing pages they point to, and links to the five newest ads per competitor.\n\nIt uses the [Google Ads Transparency Scraper](https://apify.com/ninoventures/google-ads-transparency-monitor) actor on Apify with \"only new ads\" turned on, so the actor remembers what it has already seen. The first run has no history yet and reports everything it finds as new; from the second run on you only get changes.\n\n### Setup\n1. Create an Apify account and copy your API token (Settings > API & Integrations).\n2. In **Fetch new ads**, create a Header Auth credential: name `Authorization`, value `Bearer YOUR_TOKEN`.\n3. Connect Slack in **Post digest to Slack** and invite the bot to the channel.\n4. In **Settings**, list competitor domains or brand names, set the region (two-letter code or `anywhere`) and the Slack channel ID.\n\n### Cost\nThe actor charges $1.20 per 1,000 ads plus $1 per 1,000 for ad copy and landing pages. A typical weekly run for 5 competitors costs a few cents.\n\n### Customization\nChange the schedule, raise `maxAdsPerCompetitor`, or replace Slack with email or Google Sheets.",
+        "height": 760,
+        "width": 420
+      },
+      "id": "d0344452-fc2d-4259-b9ab-585de34ff46f",
+      "name": "Sticky 7404b3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Configure\nCompetitors, region and Slack channel.",
+        "height": 300,
+        "width": 260,
+        "color": 7
+      },
+      "id": "d9ffb9f1-58d9-4914-a869-1c928cdd5fbb",
+      "name": "Sticky d55832",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Get new ads\nRuns the actor and waits up to 5 minutes for the results. Empty when nothing is new.",
+        "height": 300,
+        "width": 260,
+        "color": 7
+      },
+      "id": "3b7aecfd-721f-40c9-8782-dd9eb3ee4496",
+      "name": "Sticky 776e05",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        300,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Summarize and send\nOne message per run. Skipped when there are no new ads.",
+        "height": 300,
+        "width": 480,
+        "color": 7
+      },
+      "id": "34af2e61-196b-4d01-ac23-0ba5437fe7bc",
+      "name": "Sticky 9762fa",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        600,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "d976975a-f21e-4af2-a785-ee650da5c190",
+      "name": "Every Monday 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -180,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "55b7952c-8fe0-4183-bddb-cef6646cf7ae",
+              "name": "competitors",
+              "value": "canva.com, gymshark.com, hellofresh.com",
+              "type": "string"
+            },
+            {
+              "id": "c54ae794-15ea-4f3d-ad7d-5096f1af799a",
+              "name": "region",
+              "value": "US",
+              "type": "string"
+            },
+            {
+              "id": "7ad36291-6af6-431d-9a2c-cc974a87b401",
+              "name": "maxAdsPerCompetitor",
+              "value": 100,
+              "type": "number"
+            },
+            {
+              "id": "e5ff135d-5bfa-4b41-aec4-400e3b34257e",
+              "name": "monitorName",
+              "value": "weekly-competitors",
+              "type": "string"
+            },
+            {
+              "id": "ec7e30a9-4d11-4ec3-b89f-0b3b661a9cf0",
+              "name": "slackChannelId",
+              "value": "C0000000000",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "62f9de4c-dc82-41dd-b359-ad3c258e4d2f",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/ninoventures~google-ads-transparency-monitor/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ queries: $json.competitors.split(',').map(s => s.trim()).filter(Boolean), region: $json.region, maxAdsPerQuery: $json.maxAdsPerCompetitor, includeAdDetails: true, onlyNewAds: true, monitorName: $json.monitorName }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "e71c800e-1443-4945-a09b-5b04495a558a",
+      "name": "Fetch new ads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        120
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builds one Slack message from the new ads the actor returned.\n// The actor returns an empty list when nothing is new; then we stop here.\nconst ads = $input.all().map((i) => i.json).filter((a) => a.creativeId);\nif (!ads.length) return [];\n\nconst cfg = $('Settings').first().json;\nconst stripQuery = (u) => (u || '').split('?')[0].replace(/^https?:\\/\\/(www\\.)?/, '');\nconst byQuery = {};\nfor (const a of ads) (byQuery[a.query] ??= []).push(a);\n\nconst lines = [`*${ads.length} new Google ads* from ${Object.keys(byQuery).length} competitor(s), region ${cfg.region}:`];\nfor (const [q, list] of Object.entries(byQuery)) {\n  const formats = {};\n  for (const a of list) formats[a.format] = (formats[a.format] || 0) + 1;\n  const pages = {};\n  for (const a of list) if (a.landingPage) pages[stripQuery(a.landingPage)] = (pages[stripQuery(a.landingPage)] || 0) + 1;\n  const topPages = Object.entries(pages).sort((x, y) => y[1] - x[1]).slice(0, 3);\n  lines.push('', `*${q}*: ${list.length} new (${Object.entries(formats).map(([f, n]) => `${n} ${f.toLowerCase()}`).join(', ')})`);\n  if (topPages.length) lines.push(`Landing pages: ${topPages.map(([p, n]) => `${p} (${n})`).join(', ')}`);\n  for (const a of list.sort((x, y) => (y.firstShown || '').localeCompare(x.firstShown || '')).slice(0, 5)) {\n    const label = a.headline || `${a.format.toLowerCase()} ad`;\n    lines.push(`• <${a.adUrl}|${label.replace(/[<>|]/g, '')}> first shown ${String(a.firstShown).slice(0, 10)}`);\n  }\n}\nreturn [{ json: { text: lines.join('\\n'), adCount: ads.length } }];"
+      },
+      "id": "a992991c-5960-4a75-919a-145f2d1d6bf1",
+      "name": "Build Slack digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Settings').first().json.slackChannelId }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "f6ebda2a-af0a-465e-a573-7295ad7c6e6a",
+      "name": "Post digest to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        920,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Every Monday 08:00": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Fetch new ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch new ads": {
+      "main": [
+        [
+          {
+            "node": "Build Slack digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Slack digest": {
+      "main": [
+        [
+          {
+            "node": "Post digest to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

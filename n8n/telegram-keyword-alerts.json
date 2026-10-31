@@ -1,0 +1,242 @@
+{
+  "name": "Keyword alerts from public Telegram channels to your Telegram chat",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Keyword alerts from public Telegram channels to your Telegram chat\n\n### How it works\nEvery hour this workflow reads the public Telegram channels you list and sends you a Telegram message for each new post that mentions one of your keywords: channel, matched keyword, the first 600 characters, view count, time and link. Good for watching exchange announcement channels for listings, news channels for a company name, or competitors' channels.\n\nIt uses the [Telegram Channel Scraper](https://apify.com/ninoventures/telegram-channel-scraper) actor on Apify. No Telegram account or phone number is needed for reading; it uses the public t.me/s preview. With \"only new posts\" on, each run returns only posts published after the previous run. The first run sends the latest matches, up to the alert limit.\n\n### Setup\n1. Create an Apify account and copy your API token.\n2. In **Fetch new matching posts**, create a Header Auth credential: name `Authorization`, value `Bearer YOUR_TOKEN`.\n3. Create a bot with @BotFather, add its token as a Telegram credential in **Send alert to Telegram**, then send your bot a message.\n4. Put your chat ID in **Settings** (message @userinfobot to get it), plus the channels and keywords.\n\n### Cost\n$0.60 per 1,000 matching posts. Posts without a keyword match are not charged.\n\n### Limits\nOnly channels with a public web preview work. Private channels and groups are skipped.",
+        "height": 800,
+        "width": 420
+      },
+      "id": "a9b9cf43-998c-4216-a2f5-e5f3cc9502d7",
+      "name": "Sticky 99521e",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Configure\nChannels, keywords, your chat ID and the alert cap.",
+        "height": 300,
+        "width": 260,
+        "color": 7
+      },
+      "id": "c9e929b1-c19f-4c62-a56b-07da061fc3db",
+      "name": "Sticky 9ab0e3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Get new matching posts\nKeyword matching happens in the actor, so only matches are returned and charged.",
+        "height": 300,
+        "width": 260,
+        "color": 7
+      },
+      "id": "87d5fdac-4629-4a46-9d4f-ad25b79463aa",
+      "name": "Sticky 6316d2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        300,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Format and send\nOne message per post. Extra posts beyond the cap are counted in a final message.",
+        "height": 300,
+        "width": 480,
+        "color": 7
+      },
+      "id": "8ec0c971-9dfc-4db3-a100-35531d07b63a",
+      "name": "Sticky 348242",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        600,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "6017c9aa-dc95-436d-ae83-2a82c9136a9c",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -180,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c6f8841b-1c65-49f7-8eb7-1afaa87fa6ad",
+              "name": "channels",
+              "value": "binance_announcements, cointelegraph, thehackernews",
+              "type": "string"
+            },
+            {
+              "id": "5dd16852-9e5a-4a1a-8ea2-465838deade6",
+              "name": "keywords",
+              "value": "listing, ETF, vulnerability",
+              "type": "string"
+            },
+            {
+              "id": "e0a78bd0-db88-4a93-973f-3f3da11efc09",
+              "name": "telegramChatId",
+              "value": "123456789",
+              "type": "string"
+            },
+            {
+              "id": "53771b89-624c-46cb-a188-16f9ad236da6",
+              "name": "maxAlertsPerRun",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "92963da6-775c-4882-9e00-f445cea4cdca",
+              "name": "monitorName",
+              "value": "keyword-alerts",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a53c94b9-5463-42fb-b6be-b74f8737d287",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/ninoventures~telegram-channel-scraper/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channels: $json.channels.split(',').map(s => s.trim()).filter(Boolean), keywords: $json.keywords.split(',').map(s => s.trim()).filter(Boolean), maxPostsPerChannel: 50, maxPagesPerChannel: 10, onlyNewPosts: true, monitorName: $json.monitorName }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "74188787-fccc-42e9-9258-28b38df71483",
+      "name": "Fetch new matching posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        120
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// One Telegram message per matching post, newest last, capped per run.\nconst posts = $input.all().map((i) => i.json).filter((p) => p.postId && p.url);\nif (!posts.length) return [];\nconst cfg = $('Settings').first().json;\nconst esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst fmt = (n) => (n == null ? '?' : Number(n).toLocaleString('en-US'));\nconst picked = posts.sort((a, b) => (a.date || '').localeCompare(b.date || '')).slice(-cfg.maxAlertsPerRun);\nconst out = picked.map((p) => {\n  const snippet = p.text.length > 600 ? p.text.slice(0, 600) + '…' : p.text;\n  return { json: { text: [\n    `<b>${esc(p.channelTitle || p.channel)}</b> · ${esc((p.matchedKeywords || []).join(', '))}`,\n    esc(snippet),\n    `${fmt(p.views)} views · ${String(p.date).slice(0, 16).replace('T', ' ')} UTC`,\n    p.url,\n  ].join('\\n\\n') } };\n});\nif (posts.length > picked.length) out.push({ json: { text: `${posts.length - picked.length} more matching posts this run were not sent (limit ${cfg.maxAlertsPerRun}).` } });\nreturn out;"
+      },
+      "id": "e59e79b4-9176-4ce5-9362-5a7ccb6a09a7",
+      "name": "Format alerts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Settings').first().json.telegramChatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "84785070-3cb6-4b2c-9b48-82ae660b3ae6",
+      "name": "Send alert to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Fetch new matching posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch new matching posts": {
+      "main": [
+        [
+          {
+            "node": "Format alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format alerts": {
+      "main": [
+        [
+          {
+            "node": "Send alert to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
