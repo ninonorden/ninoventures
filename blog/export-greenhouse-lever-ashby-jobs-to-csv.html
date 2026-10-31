@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to export Greenhouse, Lever and Ashby jobs to CSV</title><meta name="description" content="Where the public job board APIs live, what they return, and how to export every open job from many companies at once, with salary ranges where published."><link rel="canonical" href="https://ninonorden.github.io/ninoventures/blog/export-greenhouse-lever-ashby-jobs-to-csv.html">
+<meta property="og:title" content="How to export Greenhouse, Lever and Ashby jobs to CSV"><meta property="og:description" content="Where the public job board APIs live, what they return, and how to export every open job from many companies at once, with salary ranges where published."><meta property="og:type" content="article">
+<link rel="stylesheet" href="../style.css"></head><body>
+<header><div class="wrap"><a class="logo" href="../index.html">Nino <span>Ventures</span></a><nav><a href="../mcp-server-starter-kit.html">MCP Starter Kit</a><a href="../blog/index.html">Blog</a><a href="../index.html#contact">Contact</a></nav></div></header>
+<main class="wrap doc article"><p class="meta">Nino Ventures &middot; 2026-10-31</p><h1>How to export Greenhouse, Lever and Ashby jobs to CSV</h1>
+<p>Most tech companies don't host their own job pages. They use an applicant tracking system: Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee or Personio. Each of these has a public job board, and most expose it as JSON so the company's careers page can render it. That means you can get a clean, complete list of a company's open jobs without scraping LinkedIn or a job aggregator.</p>
+<p>This guide covers where those feeds live, what's in them, and how to export many companies at once to CSV.</p>
+
+<h2>The public endpoints</h2>
+<p>If you only need one company, you can do it by hand:</p>
+<ul>
+<li><strong>Greenhouse:</strong> <code>https://boards-api.greenhouse.io/v1/boards/{board}/jobs?content=true</code>. Example: <code>stripe</code>, <code>airbnb</code>, <code>gitlab</code>.</li>
+<li><strong>Lever:</strong> <code>https://api.lever.co/v0/postings/{company}?mode=json</code> (EU companies sit on <code>api.eu.lever.co</code>).</li>
+<li><strong>Ashby:</strong> <code>https://api.ashbyhq.com/posting-api/job-board/{board}?includeCompensation=true</code>.</li>
+<li><strong>Recruitee:</strong> <code>https://{company}.recruitee.com/api/offers/</code>.</li>
+<li><strong>SmartRecruiters:</strong> <code>https://api.smartrecruiters.com/v1/companies/{id}/postings</code>.</li>
+</ul>
+<p>The hard part is the board name. It's often not the company name (Ubisoft's SmartRecruiters ID is <code>Ubisoft2</code>), and you first need to know which system a company uses. For a list of 50 companies that's an afternoon of clicking through careers pages.</p>
+
+<h2>Exporting many companies at once</h2>
+<p>The <a href="https://apify.com/ninoventures/career-site-jobs">Career Site Jobs Scraper</a> does the lookup for you. Give it domains; it checks the careers page for an ATS link, falls back to guessing the board name and verifies the guess, then pulls every job into one schema. $1.50 per 1,000 jobs.</p>
+<pre><code>{
+  "companies": ["stripe.com", "airbnb.com", "gitlab.com", "ramp.com", "notion.so",
+                "figma.com", "palantir.com", "mollie.com", "bunq.com", "n26.com",
+                "https://jobs.smartrecruiters.com/Ubisoft2", "https://boards.greenhouse.io/discord"]
+}</code></pre>
+<p>Our test with 20 companies on 31 October 2026: 17 resolved to a board, 3 didn't (Revolut, Canva and Personio run systems the actor doesn't cover). 2,749 jobs came back in 160 seconds. Stripe alone had 745 open roles, Ubisoft 314, Palantir 301, GitLab 238, Airbnb 202.</p>
+<p>By system: Greenhouse 1,699 jobs, Ashby 404, SmartRecruiters 314, Lever 301, Recruitee 25, Workable 6.</p>
+
+<h2>What a row looks like</h2>
+<pre><code>{
+  "company": "Airbnb",
+  "ats": "greenhouse",
+  "title": "AirCover Specialist, Claims Experience",
+  "department": "Community Support",
+  "location": "Canada",
+  "salaryMin": 58000,
+  "salaryMax": 68000,
+  "salaryCurrency": "CAD",
+  "postedAt": "2026-10-28T14:52:05.000Z",
+  "url": "https://careers.airbnb.com/positions/8306554?gh_jid=8306554"
+}</code></pre>
+<p>Salary is only there when the company publishes it. In our run that was 623 of 2,749 jobs. It depends on the company more than the system: Ramp had a range on 165 of 172 jobs, Duolingo on all 57, Stripe on none of its 745.</p>
+<p>Download as CSV, Excel or JSON from the dataset tab, or open it in Google Sheets.</p>
+
+<h2>Filters that save money</h2>
+<ul>
+<li><strong>titleKeywords / excludeTitleKeywords:</strong> <code>["engineer"]</code> and <code>["intern"]</code>. Filtering happens before charging, so you only pay for matches.</li>
+<li><strong>locationKeywords</strong> and <strong>remoteOnly</strong>.</li>
+<li><strong>postedWithinDays:</strong> only recent postings. 1,009 of our 2,749 jobs were posted in October.</li>
+</ul>
+
+<h2>Watching for new and closed jobs</h2>
+<p>Turn on <strong>Only new jobs since last run</strong> and schedule a daily run. You get just the roles that appeared since yesterday, and the run summary lists jobs that disappeared. A company that suddenly opens 15 sales roles in Germany, or closes half its engineering openings, is a signal for recruiters, sales teams and investors.</p>
+
+<h2>Limits</h2>
+<ul>
+<li>Companies on Workday, iCIMS, Taleo or a custom system aren't covered yet.</li>
+<li>The name guess is verified, but it can still miss a board with an unusual name. Pass the board URL directly (for example <code>https://jobs.lever.co/palantir</code>) and it's used as-is.</li>
+<li>Workable rate-limits its public widget API, so large Workable lists run slower.</li>
+</ul>
+
+<p class="meta"><a href="index.html">More guides</a></p></main>
+<footer><div class="wrap"><p><a href="../index.html">Home</a><a href="../blog/index.html">Blog</a><a href="../mcp-server-starter-kit.html">MCP Server Starter Kit Pro</a><a href="../terms.html">Terms</a><a href="../refund.html">Refund policy</a><a href="../privacy.html">Privacy</a><a href="mailto:nino.ventures@agentmail.to">Support</a></p><p>&copy; 2026 Nino Ventures &middot; Developer tools &amp; data tools &middot; nino.ventures@agentmail.to</p></div></footer></body></html>

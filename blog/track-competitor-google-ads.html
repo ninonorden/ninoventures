@@ -1,0 +1,64 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to track competitor Google ads (and get alerted to new ones)</title><meta name="description" content="Pull a competitor&#x27;s search, display and YouTube ads from Google&#x27;s Ads Transparency Center into a spreadsheet, read the format mix and landing pages, and get only new ads every week."><link rel="canonical" href="https://ninonorden.github.io/ninoventures/blog/track-competitor-google-ads.html">
+<meta property="og:title" content="How to track competitor Google ads (and get alerted to new ones)"><meta property="og:description" content="Pull a competitor&#x27;s search, display and YouTube ads from Google&#x27;s Ads Transparency Center into a spreadsheet, read the format mix and landing pages, and get only new ads every week."><meta property="og:type" content="article">
+<link rel="stylesheet" href="../style.css"></head><body>
+<header><div class="wrap"><a class="logo" href="../index.html">Nino <span>Ventures</span></a><nav><a href="../mcp-server-starter-kit.html">MCP Starter Kit</a><a href="../blog/index.html">Blog</a><a href="../index.html#contact">Contact</a></nav></div></header>
+<main class="wrap doc article"><p class="meta">Nino Ventures &middot; 2026-10-31</p><h1>How to track competitor Google ads (and get alerted to new ones)</h1>
+<p>Google publishes every ad an advertiser runs in its <a href="https://adstransparency.google.com/">Ads Transparency Center</a>: search, display and YouTube, with the date each ad was first and last shown. That's enough to answer most competitor questions: what are they pushing right now, which landing pages get paid traffic, how many creatives are live, and when did a new campaign start.</p>
+<p>The site is fine for looking up one brand once. It's slow for anything repeatable: no export, no history, and you can't diff this week against last week. This guide shows how to get the data into a spreadsheet and set up a weekly check that only returns new ads.</p>
+
+<h2>What the Transparency Center actually has</h2>
+<ul>
+<li>Every verified advertiser, with an ID like <code>AR13289988016354361345</code>. One brand often has several: our Canva test returned ads from both "CANVA US, INC." and "Canva, Pty Ltd".</li>
+<li>Each creative's format (text, image, video), first shown and last shown date, and the regions it ran in.</li>
+<li>For many ads, the actual copy: headline, description, call to action, and the landing page URL with its UTM tags.</li>
+<li>Impression ranges per country, but only for ads shown in the EU (that's a DSA requirement, Google doesn't publish them elsewhere).</li>
+</ul>
+<p>What it doesn't have: spend, clicks, keywords, or targeting. Anyone selling you "competitor ad spend" from this source is estimating.</p>
+
+<h2>Step 1: pull a competitor's ads into a table</h2>
+<p>We use the <a href="https://apify.com/ninoventures/google-ads-transparency-monitor">Google Ads Transparency Scraper + New Ads Monitor</a> on Apify. You give it a domain, a brand name, an advertiser ID or a Transparency Center URL. It costs $1.20 per 1,000 ads, plus $1 per 1,000 if you want the ad copy and landing pages.</p>
+<pre><code>{
+  "queries": ["Canva", "gymshark.com", "hellofresh.com", "Notion Labs", "AR05501100765344694273"],
+  "region": "US",
+  "maxAdsPerQuery": 200,
+  "includeAdDetails": true
+}</code></pre>
+<p>On 31 October 2026 that pulled 779 ads in under three minutes. The brand name "Canva" resolved to canva.com on its own. Google's own totals give a sense of scale: canva.com has 10,000 to 20,000 ads in the archive, gymshark.com 2,000 to 3,000, hellofresh.com 800 to 900. Pulling 200 per brand gets you the most recent ones, which is usually what you want.</p>
+<p>A row with details turned on looks like this (trimmed):</p>
+<pre><code>{
+  "advertiserName": "CANVA US, INC.",
+  "format": "IMAGE",
+  "firstShown": "2026-10-12T23:07:56.000Z",
+  "lastShown": "2026-10-31T19:19:06.000Z",
+  "daysShown": 20,
+  "headline": "Canva Magic Layers",
+  "body": "Flat doesn’t mean fixed. Magic Layers gives you full creative control over flat ...",
+  "landingPage": "http://www.canva.com/magic-layers/?utm_medium=&amp;utm_source=&amp;utm_campaign=us_en_al...",
+  "adUrl": "https://adstransparency.google.com/advertiser/AR13289988016354361345/creative/CR08282751427114172417?region=US"
+}</code></pre>
+<p>Export to CSV or Google Sheets from the dataset tab.</p>
+
+<h2>Step 2: read it like a marketer</h2>
+<p>A few things worth sorting by:</p>
+<ul>
+<li><strong>firstShown, newest first.</strong> Anything that started in the last 7 days is a current push. In our run, 24 of Canva's 200 US ads had started in the previous week, against 11 for Gymshark and 3 for HelloFresh.</li>
+<li><strong>Format mix.</strong> Gymshark's 200 were 103 video, 51 image, 46 text. HelloFresh was the reverse: 146 text, 5 video. That tells you where each one fights: YouTube or search.</li>
+<li><strong>Landing pages.</strong> Group by <code>landingPage</code> without the query string. Canva's image ads in October pointed at two pages: Magic Layers and the visual suite. That's the product they're paying to push.</li>
+<li><strong>daysShown.</strong> Ads that have run for months without being replaced usually perform. Short-lived ones were tests.</li>
+</ul>
+<p>Be honest about coverage: the copy and landing page came back for 94 of 779 ads (12%). Google renders the rest as images or video without exposing text. Video ads almost always have a YouTube ID (232 of 238 in our run), so you can watch them.</p>
+
+<h2>Step 3: get only new ads every week</h2>
+<p>Turn on <strong>Only new ads since last run</strong> and schedule the actor in Apify (Schedules, weekly). The first run stores every ad it saw. Later runs return only creatives that weren't there before. When we re-ran the same five brands eight minutes after the first run, it checked 779 ads in 10 seconds and returned one new Canva ad.</p>
+<p>Hook the run to Slack or email through Apify's integrations, or pull the dataset into a sheet with n8n or Make. Use a separate <strong>monitor name</strong> per client so their histories don't mix.</p>
+
+<h2>Limits</h2>
+<ul>
+<li>Only ads from verified advertisers appear. Small advertisers who haven't been verified may be missing.</li>
+<li>Google rate-limits heavy use. The actor rotates proxy sessions and doesn't charge for ad details it failed to fetch, but very large pulls take longer.</li>
+<li>Name search can match the wrong company when brands share a word. Using the domain or advertiser ID avoids that.</li>
+</ul>
+
+<p class="meta"><a href="index.html">More guides</a></p></main>
+<footer><div class="wrap"><p><a href="../index.html">Home</a><a href="../blog/index.html">Blog</a><a href="../mcp-server-starter-kit.html">MCP Server Starter Kit Pro</a><a href="../terms.html">Terms</a><a href="../refund.html">Refund policy</a><a href="../privacy.html">Privacy</a><a href="mailto:nino.ventures@agentmail.to">Support</a></p><p>&copy; 2026 Nino Ventures &middot; Developer tools &amp; data tools &middot; nino.ventures@agentmail.to</p></div></footer></body></html>

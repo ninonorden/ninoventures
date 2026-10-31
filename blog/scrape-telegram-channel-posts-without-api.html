@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to scrape Telegram channel posts without the API or a phone number</title><meta name="description" content="Use the public t.me/s web preview to export posts, views, reactions and links from public channels, filter by keyword, and build a feed of new posts."><link rel="canonical" href="https://ninonorden.github.io/ninoventures/blog/scrape-telegram-channel-posts-without-api.html">
+<meta property="og:title" content="How to scrape Telegram channel posts without the API or a phone number"><meta property="og:description" content="Use the public t.me/s web preview to export posts, views, reactions and links from public channels, filter by keyword, and build a feed of new posts."><meta property="og:type" content="article">
+<link rel="stylesheet" href="../style.css"></head><body>
+<header><div class="wrap"><a class="logo" href="../index.html">Nino <span>Ventures</span></a><nav><a href="../mcp-server-starter-kit.html">MCP Starter Kit</a><a href="../blog/index.html">Blog</a><a href="../index.html#contact">Contact</a></nav></div></header>
+<main class="wrap doc article"><p class="meta">Nino Ventures &middot; 2026-10-31</p><h1>How to scrape Telegram channel posts without the API or a phone number</h1>
+<p>Telegram has an official API, but to use it you need a phone number, an app ID from my.telegram.org, and a client library that logs in as a user. For reading public channels that's overkill. Every public channel also has a web preview at <code>https://t.me/s/&lt;channel&gt;</code> that anyone can open in a browser, no account needed. It shows the same posts, view counts and reactions.</p>
+<p>This guide shows what you can get from that preview, how to page back through history, and how to turn it into a feed of new posts.</p>
+
+<h2>How the web preview works</h2>
+<p>Open <a href="https://t.me/s/durov">t.me/s/durov</a> and you get the 20 most recent posts. Add <code>?before=300</code> and you get the 20 posts before post 300. That's the whole pagination model: post IDs are sequential per channel, so you walk back 20 at a time until you hit the date or count you want.</p>
+<p>Each post has its text, an ISO timestamp, a view count ("24.4M", which you'll want as a number), reactions, links, link previews, photos and video URLs, replies and forwards. The channel header has the title, description and subscriber count.</p>
+<p>Not every channel has it. Some owners turn the preview off, and private channels, groups and bots never have one. When we tried 22 well-known names, 20 worked. Reuters and CNN redirected to a "join" page instead.</p>
+
+<h2>Scraping it without writing the parser</h2>
+<p>The <a href="https://apify.com/ninoventures/telegram-channel-scraper">Telegram Channel Scraper + New Posts Monitor</a> on Apify handles paging, parsing and number conversion. $0.60 per 1,000 posts, nothing for channels that have no preview.</p>
+<pre><code>{
+  "channels": ["cointelegraph", "binance_announcements", "https://t.me/thehackernews"],
+  "maxPostsPerChannel": 200,
+  "postedWithinDays": 14
+}</code></pre>
+<p>Our test on 31 October 2026: 20 channels, 150 posts each where available, 2,767 posts in 52 seconds. Every post had a date and view count, 99% had text, 90% had at least one link, and 57% had reactions.</p>
+<p>A row (trimmed):</p>
+<pre><code>{
+  "channel": "binance_announcements",
+  "postId": 9103,
+  "date": "2026-10-31T14:30:09+00:00",
+  "text": "Security Incident | Recovery Update #3: 90% of Stolen Assets Replenished; Proof of Reserves Snapshot Provided (2026-10-31) ...",
+  "views": 24100,
+  "links": ["https://www.binance.com/en/support/announcement/detail/1fdf1f61559c401da0435895ffcccb62?utm_source=EnglishTelegram&amp;utm_medium=GlobalCommunity&amp;utm_campaign=AnnouncementBot"],
+  "channelSubscribers": 3250000,
+  "url": "https://t.me/binance_announcements/9103"
+}</code></pre>
+
+<h2>Filtering by keyword</h2>
+<p>Telegram has an in-channel search (<code>?q=bitcoin</code>), but on the web it only returns the latest 20 or so matches. For anything deeper, read the posts and filter them yourself. The actor's <strong>Keep only posts containing</strong> option does that: posts without a match are dropped and not charged. Matching is case-insensitive and starts at a word boundary, so <code>eth</code> catches "Ethereum" but not "together".</p>
+
+<h2>A feed of new posts</h2>
+<p>Turn on <strong>Only new posts since last run</strong> and schedule it hourly. The first run saves the latest post ID for each channel. After that, each run returns only newer posts. If nothing new was posted, the run takes a few seconds and costs nothing. Send the output to Slack, a sheet, or a webhook through Apify's integrations or n8n.</p>
+<p>Typical uses: crypto teams watching exchange announcement channels for listings, journalists tracking news channels in other languages, and marketers checking which competitor posts get the most views per subscriber.</p>
+
+<h2>Things the preview won't give you</h2>
+<ul>
+<li>Comments under posts and member lists. They aren't on the public page.</li>
+<li>Videos above a size limit. You get the thumbnail and duration, not the file.</li>
+<li>Media links that last. Telegram's CDN links are signed and expire, so download soon after the run.</li>
+</ul>
+<p>Public posts can still contain personal data. If you store them, make sure you have a reason to under GDPR or whatever law applies to you.</p>
+
+<p class="meta"><a href="index.html">More guides</a></p></main>
+<footer><div class="wrap"><p><a href="../index.html">Home</a><a href="../blog/index.html">Blog</a><a href="../mcp-server-starter-kit.html">MCP Server Starter Kit Pro</a><a href="../terms.html">Terms</a><a href="../refund.html">Refund policy</a><a href="../privacy.html">Privacy</a><a href="mailto:nino.ventures@agentmail.to">Support</a></p><p>&copy; 2026 Nino Ventures &middot; Developer tools &amp; data tools &middot; nino.ventures@agentmail.to</p></div></footer></body></html>
