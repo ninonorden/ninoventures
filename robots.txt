@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ninonorden.github.io/ninoventures/sitemap.xml

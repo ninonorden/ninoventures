@@ -1,0 +1,38 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shopify app detector without guesswork: theme, apps, and what changed</title>
+<meta name="description" content="How to see which Shopify apps and theme a store runs, without guessing from the page source. Use a browser extension for one store, or a bulk detector for a list.">
+<link rel="canonical" href="https://ninonorden.github.io/ninoventures/blog/shopify-app-detector-without-guesswork.html">
+<meta property="og:title" content="Shopify app detector without guesswork">
+<meta property="og:description" content="Theme, apps, and change history for Shopify stores — one store at a time or in bulk.">
+<link rel="stylesheet" href="../style.css"></head><body>
+<header><div class="wrap"><a class="logo" href="../index.html">Nino <span>Ventures</span></a><nav>
+<a href="../stackdiff.html">Stackdiff</a><a href="index.html">Blog</a><a href="../index.html#contact">Contact</a>
+</nav></div></header>
+<main class="wrap">
+<p class="meta">Blog &middot; 2026-11-05 &middot; ~5 min</p>
+<h1>Shopify app detector without guesswork</h1>
+<p>People still paste a store URL into a random “tech looker” and hope the result is right. The reliable path is shorter: read what the storefront actually loads, match it against known app signatures, and remember what you saw last time.</p>
+
+<h2>What you can detect from the page</h2>
+<ul>
+<li>Theme name, version, and whether it is a Theme Store theme or custom.</li>
+<li>Apps that inject scripts or liquid snippets with stable handles: Klaviyo, Judge.me, Yotpo, ReCharge, Gorgias, Okendo, Attentive, Rebuy and about 130 others.</li>
+<li>Headless storefronts (Hydrogen and friends) so you do not invent a theme name.</li>
+<li>Ad and analytics pixels when you want the paid picture: Meta, TikTok, GA4, GTM, Pinterest.</li>
+</ul>
+
+<h2>One store: use a browser extension</h2>
+<p><a href="../stackdiff.html">Stackdiff</a> is our extension for that. Click the icon on any Shopify store. Free tells you theme and matched apps. Pro ($4/month) keeps history so you see apps added or removed since your last visit, plus pixels and a CSV export. Pro checkout is live on Polar; the Chrome Web Store listing is waiting on our developer account, and a Firefox Add-ons build is ready for a free AMO submit.</p>
+<p><a class="btn" href="https://buy.polar.sh/polar_cl_EXGA6Hem25HbGPNtfZ1YFOL5HSlLtZLOBZFTY04icad">Get Stackdiff Pro · $4/month</a>
+<a class="btn ghost" href="../stackdiff.html">Stackdiff details</a></p>
+
+<h2>Hundreds of stores: run it in bulk</h2>
+<p>The extension is for the store you have open. For a spreadsheet of domains, use the <a href="https://apify.com/ninoventures/shopify-app-tech-detector">Shopify App &amp; Theme Detector on Apify</a>. Same signatures, pay per store, optional watch for installs and removals. There is also a walkthrough on <a href="find-shopify-stores-using-a-specific-app.html">building a lead list from a specific app</a>.</p>
+
+<h2>What not to trust</h2>
+<p>BuiltWith-style crawl databases go stale. Page-source greps that only look for one string miss embeds and app blocks. If you care about a competitor stack this week, detect it this week.</p>
+
+<p class="meta">Stackdiff is not affiliated with Shopify. Shopify is a trademark of Shopify Inc.</p>
+</main>
+<footer><div class="wrap"><p><a href="../index.html">Home</a><a href="../stackdiff.html">Stackdiff</a><a href="index.html">Blog</a><a href="../n8n.html">n8n</a><a href="../filing-watch.html">Filing Watch</a></p></div></footer>
+</body></html>
