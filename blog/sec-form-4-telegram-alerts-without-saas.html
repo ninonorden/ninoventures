@@ -1,0 +1,35 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SEC Form 4 and 8-K alerts in Telegram without a $30/month SaaS</title>
+<meta name="description" content="How to watch Form 4 and 8-K filings for a ticker list using the free SEC APIs, a small Python script or n8n, and Telegram.">
+<link rel="stylesheet" href="../style.css"></head><body>
+<header><div class="wrap"><a class="logo" href="../index.html">Nino <span>Ventures</span></a><nav>
+<a href="../filing-watch.html">Filing Watch</a><a href="index.html">Blog</a><a href="../index.html#contact">Contact</a>
+</nav></div></header>
+<main class="wrap">
+<p class="meta">Blog &middot; 2026-11-05 &middot; ~6 min</p>
+<h1>SEC Form 4 and 8-K alerts in Telegram without a $30/month SaaS</h1>
+<p>If you only need “tell me when NVDA or AAPL files something”, you do not need a market-intelligence subscription. The SEC publishes filings for free. What you pay for at Earnings Feed, Gunpowder or EdgarKit is hosting, parsing and polish. Fair enough if you want that. If you just want a ping, here is the thinner path.</p>
+
+<h2>The free endpoints</h2>
+<p>Two URLs do most of the work:</p>
+<ul>
+<li><code>https://www.sec.gov/files/company_tickers.json</code> — ticker → CIK</li>
+<li><code>https://data.sec.gov/submissions/CIK##########.json</code> — recent filings for that company</li>
+</ul>
+<p>Declare a User-Agent that includes a real contact email. The SEC asks for that under fair access, and they will throttle or block you if you skip it. Stay under 10 requests per second; one request every few hundred milliseconds is plenty for a watchlist of 20 names.</p>
+
+<h2>Remember what you already saw</h2>
+<p>Each filing has an accession number. Keep a small state file (or n8n static data) of accessions you already alerted on. A run that finds nothing should print an empty list and go back to sleep. That is the whole product.</p>
+
+<h2>Telegram</h2>
+<p>Format one message per new filing: ticker, form type, filed date, link to the SEC index page. Do not try to paraphrase the 8-K in the alert. Link out. People who care will open it.</p>
+
+<h2>What we packaged</h2>
+<p>We got tired of redoing this for <a href="https://www.youtube.com/@chartedcompanies">Charted Companies</a> research, so we wrapped it as <a href="../filing-watch.html">Filing Watch</a>: a stdlib Python script, an n8n workflow, and a free semiconductor starter watchlist. The paid kit is $29 one-time. The free starter is the five chip tickers plus the script.</p>
+<p><a class="btn" href="https://buy.polar.sh/polar_cl_Sk4wMlE4xmp7foJuHBHx7Hi1phqoBs2Sw6Jkq3qqdrv">Get the free starter</a>
+<a class="btn ghost" href="../filing-watch.html">Filing Watch details</a></p>
+
+<p class="meta">This is not investment advice. Filings come from the U.S. SEC; their terms still apply.</p>
+</main>
+<footer><div class="wrap"><p><a href="../index.html">Home</a><a href="../filing-watch.html">Filing Watch</a><a href="index.html">Blog</a></p></div></footer>
+</body></html>
