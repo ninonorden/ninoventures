@@ -29,7 +29,9 @@ jobs:
             echo "Missing POLAR_ACCESS_TOKEN secret — add it under repo Settings → Secrets"
             exit 0
           fi
-          touch filing-alerts-state.json
+          if [ ! -s filing-alerts-state.json ]; then
+            echo '{"seen":{},"initialized":false}' > filing-alerts-state.json
+          fi
           python tools/run_alerts.py
       - name: Save state
         if: always()

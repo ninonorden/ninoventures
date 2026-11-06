@@ -109,7 +109,18 @@ def telegram_send(token: str, chat_id: str, text: str):
 def main():
     ua = os.environ.get("SEC_USER_AGENT") or "NinoVenturesFilingAlerts/1.0 nino.ventures@agentmail.to"
     state_path = Path(os.environ.get("STATE_PATH", "state.json"))
-    state = json.loads(state_path.read_text()) if state_path.exists() else {"seen": {}, "initialized": False}
+    raw = state_path.read_text() if state_path.exists() else ""
+    if raw.strip():
+        try:
+            state = json.loads(raw)
+        except json.JSONDecodeError:
+            state = {"seen": {}, "initialized": False}
+    else:
+        state = {"seen": {}, "initialized": False}
+    if not isinstance(state, dict):
+        state = {"seen": {}, "initialized": False}
+    state.setdefault("seen", {})
+    state.setdefault("initialized", False)
     bot = os.environ.get("TELEGRAM_BOT_TOKEN") or ""
 
     try:
