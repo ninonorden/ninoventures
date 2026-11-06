@@ -1,0 +1,39 @@
+name: Filing Alerts poll
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: filing-alerts-state.json
+          key: filing-alerts-state-${{ github.run_id }}
+          restore-keys: |
+            filing-alerts-state-
+      - name: Poll EDGAR and notify
+        env:
+          POLAR_ACCESS_TOKEN: ${{ secrets.POLAR_ACCESS_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          STATE_PATH: filing-alerts-state.json
+        run: |
+          if [ -z "$POLAR_ACCESS_TOKEN" ]; then
+            echo "Missing POLAR_ACCESS_TOKEN secret — add it under repo Settings → Secrets"
+            exit 0
+          fi
+          touch filing-alerts-state.json
+          python tools/run_alerts.py
+      - name: Save state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: filing-alerts-state.json
+          key: filing-alerts-state-${{ github.run_id }}

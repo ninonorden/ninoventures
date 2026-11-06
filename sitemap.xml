@@ -17,4 +17,9 @@
 <url><loc>https://ninonorden.github.io/ninoventures/terms.html</loc><lastmod>2026-11-05</lastmod></url>
 <url><loc>https://ninonorden.github.io/ninoventures/refund.html</loc><lastmod>2026-11-05</lastmod></url>
 <url><loc>https://ninonorden.github.io/ninoventures/privacy.html</loc><lastmod>2026-11-05</lastmod></url>
+  <url>
+    <loc>https://ninonorden.github.io/ninoventures/filing-alerts.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
 </urlset>
