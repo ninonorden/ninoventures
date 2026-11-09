@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
 
+# Checkout lives on buy.polar.sh (off-site). All on-site buy anchors use rel=nofollow.
+# There is no local /buy path to Disallow. If we add thin redirect pages later,
+# Disallow them here so crawlers cannot mint Polar checkout sessions via link preview.
+# Disallow: /buy/
+# Disallow: /go/
+
 Sitemap: https://ninonorden.github.io/ninoventures/sitemap.xml
