@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Filing Alerts: hosted SEC Form 4 &amp; 8-K pings to Telegram · 7-day trial then $12/mo</title>
-<meta name="description" content="Hosted SEC EDGAR alerts to Telegram for up to 25 tickers. Form 4, 8-K, 10-Q, 10-K. 7-day free trial, then $12/month. Link Telegram after payment — no chat-id field at checkout.">
+<meta name="description" content="Hosted SEC EDGAR alerts to Telegram for up to 25 tickers. Form 4, 8-K, 10-Q, 10-K. 7-day free trial, then $12/month. 7-day free trial; after payment you are sent to Telegram and linked automatically.">
 <link rel="canonical" href="https://ninonorden.github.io/ninoventures/filing-alerts.html">
 <link rel="stylesheet" href="style.css">
 <!-- GoatCounter: uncomment after creating a free account at https://www.goatcounter.com/
@@ -23,7 +23,7 @@
 <a class="btn" href="https://buy.polar.sh/polar_cl_9FTsZ6wHAppog4ZWBOR7uYvGVEqefqI4YtP3w481NDr?utm_source=site&amp;utm_medium=web&amp;utm_content=filing-alerts" rel="nofollow noopener">Start 7-day free trial</a>
 <a class="btn ghost" href="filing-watch.html">Prefer a one-time DIY kit? $29</a>
 </p>
-<p class="meta">Checkout asks for card + tickers only. After payment you open the bot with a one-tap link — we bind your chat id ourselves. Cancel anytime in Polar.</p>
+<p class="meta">After payment Polar sends you to <code>@FilingAlertsNV_bot</code> — press Start and you are linked automatically. The chat-id field at checkout is optional (fallback). Cancel anytime in Polar.</p>
 </section>
 
 <h2>Example alert</h2>
@@ -63,13 +63,12 @@ Tickers watched: NVDA, AAPL, MSFT (25 max)</code></pre>
 <li>Custom support setups — self-serve only</li>
 </ul>
 
-<h2>How checkout works (after Polar/bot update)</h2>
+<h2>How checkout works</h2>
 <ol>
-<li>Click <strong>Start 7-day free trial</strong>. Polar takes card + up to 25 tickers. <strong>No Telegram chat id field.</strong></li>
-<li>On success, Polar redirects to <code>t.me/FilingAlertsNV_bot?start=&lt;CHECKOUT_ID&gt;</code>. Press Start in Telegram — the bot stores your chat id against that checkout.</li>
+<li>Click <strong>Start 7-day free trial</strong>. Polar takes card + up to 25 tickers. A Telegram chat-id field may appear — leave it blank (optional fallback only).</li>
+<li>On success, Polar redirects to <code>t.me/FilingAlertsNV_bot?start=&lt;CHECKOUT_ID&gt;</code>. Press Start in Telegram — the bot links your chat to that checkout automatically.</li>
 <li>Alerts begin on the next poll (~every 10 minutes) once the chat is linked. Trial ends after 7 days unless you cancel.</li>
 </ol>
-<p class="meta"><strong>Not live yet:</strong> the current Polar checkout link still asks for a chat id up front. Enabling trial + success deep-link is a Polar dashboard/API change plus a small bot update — described in <code>POLAR-FIXES.md</code>, not executed. Until then the buy button still hits the existing checkout.</p>
 
 <div class="guarantee">
 <p><strong>14-day refund after first charge.</strong> If we cannot deliver Telegram alerts after you finished checkout and linked the bot, email <a href="mailto:nino.ventures@agentmail.to">nino.ventures@agentmail.to</a> and we refund. No custom watchlists beyond the 25-ticker cap.</p>
